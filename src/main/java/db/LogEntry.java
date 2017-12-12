@@ -1,9 +1,15 @@
 package db;
 
-import java.util.Date;
+import java.io.Serializable;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
-public class LogEntry {
-    private Date date;
+public class LogEntry implements Serializable {
+
+    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+
+    private LocalDateTime date;
     private String user;
     private int pages;
     private int copies;
@@ -14,8 +20,8 @@ public class LogEntry {
     private String filesize;
     private String client;
 
-    public LogEntry(Date date, String user, int pages, int copies, String printer, String documentName, String paperSize, String grayscale, String fileSize, String client) {
-        this.date = date;
+    public LogEntry(Timestamp date, String user, int pages, int copies, String printer, String documentName, String paperSize, String grayscale, String fileSize, String client) {
+        this.date = date.toLocalDateTime();
         this.user = user;
         this.pages = pages;
         this.copies = copies;
@@ -27,48 +33,52 @@ public class LogEntry {
         this.client = client;
     }
 
-    public Date getDate() {
-        return date;
+    @EntryDataGetter(name = "Time")
+    public String getDate() {
+        return date.format(DATE_TIME_FORMAT);
     }
 
-    @EntryDataMethod
+    @EntryDataGetter(name = "User")
     public String getUser() {
         return user;
     }
 
-    @EntryDataMethod
+    @EntryDataGetter(name = "Pages")
     public int getPages() {
         return pages;
     }
 
-    @EntryDataMethod
+    @EntryDataGetter(name = "Copies")
     public int getCopies() {
         return copies;
     }
 
-    @EntryDataMethod
+    @EntryDataGetter(name = "Printer")
     public String getPrinter() {
         return printer;
     }
 
-    @EntryDataMethod
+    @EntryDataGetter(name = "Document Name")
     public String getDocumentName() {
         return documentName;
     }
 
-    @EntryDataMethod
+    @EntryDataGetter(name = "Paper Size")
     public String getPaperSize() {
         return paperSize;
     }
 
+    @EntryDataGetter(name = "Color")
     public String getGrayscale() {
         return grayscale;
     }
 
+    @EntryDataGetter(name = "File Size")
     public String getFileSize() {
         return filesize;
     }
 
+    @EntryDataGetter(name = "Client")
     public String getClient() {
         return client;
     }
