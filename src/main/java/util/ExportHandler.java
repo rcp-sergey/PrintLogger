@@ -1,7 +1,7 @@
-package tools;
+package util;
 
 import db.EntryDataGetter;
-import javafx.collections.FXCollections;
+import db.UserTotalEntry;
 import javafx.collections.ObservableList;
 import db.LogEntry;
 import javafx.scene.control.TableColumn;
@@ -12,7 +12,6 @@ import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -39,8 +38,13 @@ public class ExportHandler {
             ArrayList<String> columnNames = getColumnNames(tableView.getColumns());
 
             // get getters for each column using reflection
-            Class logEntryClass = LogEntry.class;
-            Method[] allLogEntryMethods = logEntryClass.getMethods();
+            Class entryClass = null;
+            if (tableView.getItems().get(0) instanceof LogEntry) {
+                entryClass = LogEntry.class;
+            } else if (tableView.getItems().get(0) instanceof UserTotalEntry) {
+                entryClass = UserTotalEntry.class;
+            }
+            Method[] allLogEntryMethods = entryClass.getMethods();
             Method[] sortedGetters = new Method[columnNames.size()];
 
             int rowNum = 2;

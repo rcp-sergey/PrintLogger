@@ -11,8 +11,8 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
 import db.DBHandler;
 import db.LogEntry;
-import tools.ColumnHandler;
-import tools.ExportHandler;
+import util.ColumnHandler;
+import util.ExportHandler;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -54,20 +54,6 @@ public class MainViewController implements Initializable {
     private ComboBox pcComboBox;
     private final DBHandler dbHandler = DBHandler.getInstance();
     private ObservableList data;
-    
-/*    static {
-        columns = new LinkedHashMap<>();
-        columns.put("Time", true);
-        columns.put("User", true);
-        columns.put("Pages", true);
-        columns.put("Copies", true);
-        columns.put("Printer", true);
-        columns.put("DocumentName", true);
-        columns.put("PaperSize", true);
-        columns.put("Grayscale", true);
-        columns.put("FileSize", true);
-        columns.put("Client", true);
-    }*/
 
     public void startImport() {
         warningLabel.setText("");
@@ -256,16 +242,16 @@ public class MainViewController implements Initializable {
                 column.maxWidthProperty().bind(tableView.widthProperty().multiply(0.10));
                 column.setCellValueFactory(new PropertyValueFactory<>("paperSize"));
                 Platform.runLater(() -> tableView.getColumns().add(column));
-            } else if (colName.equals("Grayscale")) {
+            } else if (colName.equals("Grayscale") || colName.equals("Color")) {
                 TableColumn<LogEntry, String> column = new TableColumn<>("Color");
                 column.prefWidthProperty().bind(tableView.widthProperty().multiply(0.08));
                 column.setCellValueFactory(new PropertyValueFactory<>("grayscale"));
                 Platform.runLater(() -> tableView.getColumns().add(column));
-            } else if (colName.equals("FileSize") && colName.equals("FileSize")) {
+            } else if (colName.equals("FileSize") || colName.equals("File Size")) {
                 TableColumn<LogEntry, String> column = new TableColumn<>("File Size");
                 column.setCellValueFactory(new PropertyValueFactory<>("fileSize"));
                 Platform.runLater(() -> tableView.getColumns().add(column));
-            } else if (colName.equals("Client")) {
+            } else if (colName.equals("PC")) {
                 TableColumn<LogEntry, String> column = new TableColumn<>("PC");
                 column.prefWidthProperty().bind(tableView.widthProperty().multiply(0.10));
                 column.setCellValueFactory(new PropertyValueFactory<>("client"));
@@ -318,7 +304,7 @@ public class MainViewController implements Initializable {
         }
         sb.append(" FROM logs");
         if (userNameField.getText() != null && !userNameField.getText().equals("")) {
-            sb.append(" WHERE User = '" + userNameField.getText() + "'");
+            sb.append(" WHERE User LIKE '" + userNameField.getText() + "'");
             countWhere++;
         }
         if (datePickerFrom.getValue() != null) {
@@ -354,7 +340,7 @@ public class MainViewController implements Initializable {
         if (pcComboBox != null && !pcComboBox.getEditor().getText().equals("")) {
             if (countWhere == 0) sb.append(" WHERE");
             else sb.append(" AND");
-            sb.append(" Client = '" + pcComboBox.getEditor().getText() + "'");
+            sb.append(" Client LIKE '" + pcComboBox.getEditor().getText() + "'");
             countWhere++;
         }
         if (totalCheckBox.isSelected()) sb.append(" GROUP BY User order by SUM(Pages * Copies) desc");
@@ -433,22 +419,3 @@ public class MainViewController implements Initializable {
         }
     }
 }
-
-/*
-
-    private static void readCsvUsingLoad()
-    {
-        try (Connection connection = DBConnection.getConnection())
-        {
-
-            String loadQuery = "LOAD DATA LOCAL INFILE '" + "C:\\upload.csv" + "' INTO TABLE txn_tbl FIELDS TERMINATED BY ','" + " LINES TERMINATED BY '\n' (txn_amount, card_number, terminal_id) ";
-            System.out.println(loadQuery);
-            Statement stmt = connection.createStatement();
-            stmt.execute(loadQuery);
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
-    }
-*/

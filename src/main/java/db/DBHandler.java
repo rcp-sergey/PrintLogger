@@ -10,7 +10,7 @@ public class DBHandler {
     private static DBHandler dbHandler = new DBHandler();
     private static Connection conn;
     private Statement stmt;
-    SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+    /*SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");*/
 
     private DBHandler() {
         try {
@@ -93,32 +93,6 @@ public class DBHandler {
             System.out.println("Import completed");
         } catch (SQLException e) {
             e.printStackTrace();
-        }
-    }
-
-    public void searchByUserInDB(String user, Timestamp dateFrom, Timestamp dateTo) throws SQLException {
-        /*PreparedStatement ps = conn.prepareStatement("SELECT Time, User, DocumentName FROM logs WHERE User = ? AND Time >='2016-04-26 00:00:00' AND Time <'2016-04-27 23:59:59'");*/
-        PreparedStatement ps = conn.prepareStatement("SELECT Time, User, DocumentName FROM logs WHERE User = ? AND Time >=? AND Time <=?");
-        ps.setString(1, user);
-        ps.setTimestamp(2, dateFrom);
-        ps.setTimestamp(3, dateTo);
-        ResultSet rs = ps.executeQuery();
-        ResultSetMetaData meta = rs.getMetaData();
-        System.out.println(meta.getColumnTypeName(1));
-        ArrayList<String[]> list = new ArrayList<>();
-        String[] tmp;
-        while (rs.next()) {
-            tmp = new String[3];
-            tmp[0] = dateFormat.format(rs.getTimestamp(1));
-            tmp[1] = rs.getString(2);
-            tmp[2] = rs.getString(3);
-            list.add(tmp);
-        }
-        for (String[] element: list) {
-            for (String s: element) {
-                System.out.print(s + " ");
-            }
-            System.out.println();
         }
     }
 

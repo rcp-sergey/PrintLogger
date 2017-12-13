@@ -1,11 +1,9 @@
 package db;
 
-import java.math.BigInteger;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.io.Serializable;
 
-public class UserTotalEntry {
+public class UserTotalEntry implements Serializable {
+    static String type = "UserTotalEntry";
 
     private String user;
     private int totalPages;
@@ -48,7 +46,7 @@ public class UserTotalEntry {
         return paperSize;
     }
 
-    @EntryDataGetter(name = "Client")
+    @EntryDataGetter(name = "PC")
     public String getClient() {
         return client;
     }
