@@ -123,7 +123,7 @@ public class DBHandler {
     }
 
     public ResultSet searchInDB(String query) throws SQLException {
-        return stmt.executeQuery(query);
+        return conn.createStatement().executeQuery(query);
     }
 
 

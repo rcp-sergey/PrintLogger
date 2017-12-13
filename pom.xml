@@ -42,9 +42,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.controlsfx</groupId>
-            <artifactId>controlsfx</artifactId>
-            <version>8.40.14</version>
+            <groupId>org.jfxtras</groupId>
+            <artifactId>jfxtras-labs</artifactId>
+            <version>8.0-r5</version>
         </dependency>
 
     </dependencies>

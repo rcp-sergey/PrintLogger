@@ -12,7 +12,7 @@ public class PrintLoggerApp extends Application {
         Parent root = FXMLLoader.load(getClass().getResource("views/MainView.fxml"));
         mainStage = primaryStage;
         primaryStage.setTitle("Print Logger");
-        primaryStage.setScene(new Scene(root, 700, 550));
+        primaryStage.setScene(new Scene(root, 1200, 600));
         primaryStage.show();
     }
 

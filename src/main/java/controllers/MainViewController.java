@@ -1,5 +1,6 @@
 package controllers;
 
+import db.UserTotalEntry;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -10,17 +11,17 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
 import db.DBHandler;
 import db.LogEntry;
+import tools.ColumnHandler;
 import tools.ExportHandler;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -42,12 +43,19 @@ public class MainViewController implements Initializable {
     @FXML
     private ComboBox printerComboBox;
     @FXML
+    private ComboBox formatComboBox;
+    @FXML
+    private ComboBox colorComboBox;
+    @FXML
     private MenuItem exportToExcelItem;
+    @FXML
+    private CheckBox totalCheckBox;
+    @FXML
+    private ComboBox pcComboBox;
     private final DBHandler dbHandler = DBHandler.getInstance();
-    private static LinkedHashMap<String, Boolean> columns;
-    private ObservableList<LogEntry> data;
+    private ObservableList data;
     
-    static {
+/*    static {
         columns = new LinkedHashMap<>();
         columns.put("Time", true);
         columns.put("User", true);
@@ -59,7 +67,7 @@ public class MainViewController implements Initializable {
         columns.put("Grayscale", true);
         columns.put("FileSize", true);
         columns.put("Client", true);
-    }
+    }*/
 
     public void startImport() {
         warningLabel.setText("");
@@ -110,7 +118,7 @@ public class MainViewController implements Initializable {
             Long startTime = System.currentTimeMillis();
             try {
                 // generate SQL query string depending on search parameters
-                String query = setUpQuery();
+                String query = constructQuery();
 
                 // execute query and get ResultSet and it's MetaData
                 ResultSet rs = dbHandler.searchInDB(query);
@@ -128,12 +136,23 @@ public class MainViewController implements Initializable {
                 createColumns(columnNames);
 
                 // create template array for LogEntry constructor and start to fill ObservableList. Non-used parameters are nulls.
-                Object[] values = new Object[columns.size()];
-                while(rs.next()){
-                    for (int i = 0; i < usefulColumns.length; i++) {
-                        values[usefulColumns[i]] = rs.getObject(i + 1);
+                Object[] values = null;
+                if (totalCheckBox != null && totalCheckBox.isSelected()) {
+                    values = new Object[ColumnHandler.getUserTotalColumns().size()];
+                    while(rs.next()){
+                        for (int i = 0; i < usefulColumns.length; i++) {
+                            values[usefulColumns[i]] = rs.getObject(i + 1);
+                        }
+                        data.add(new UserTotalEntry((String) values[0], ((BigDecimal) values[1]).intValueExact(), (String) values[2], (String) values[3], (String) values[4], (String) values[5]));
                     }
-                    data.add(new LogEntry((Timestamp) values[0], (String) values[1], (int) values[2], (int) values[3], (String) values[4], (String) values[5], (String) values[6], (String) values[7], (String) values[8], (String) values[9]));
+                } else {
+                    values = new Object[ColumnHandler.getLogEntryColumns().size()];
+                    while(rs.next()){
+                        for (int i = 0; i < usefulColumns.length; i++) {
+                            values[usefulColumns[i]] = rs.getObject(i + 1);
+                        }
+                        data.add(new LogEntry((Timestamp) values[0], (String) values[1], (int) values[2], (int) values[3], (String) values[4], (String) values[5], (String) values[6], (String) values[7], (String) values[8], (String) values[9]));
+                    }
                 }
                 Long time = System.currentTimeMillis() - startTime;
                 System.out.println("list done");
@@ -155,17 +174,27 @@ public class MainViewController implements Initializable {
     }
 
     private int getColumnCount(String columnName) {
-        if (columnName.equals("Time")) return 0;
-        else if (columnName.equals("User")) return 1;
-        else if (columnName.equals("Pages")) return 2;
-        else if (columnName.equals("Copies")) return 3;
-        else if (columnName.equals("Printer")) return 4;
-        else if (columnName.equals("DocumentName")) return 5;
-        else if (columnName.equals("PaperSize")) return 6;
-        else if (columnName.equals("Grayscale")) return 7;
-        else if (columnName.equals("FileSize")) return 8;
-        else if (columnName.equals("Client")) return 9;
-        return 0; // TODO throw exception
+
+        if (totalCheckBox != null && totalCheckBox.isSelected()) {
+            if (columnName.equals("User")) return 0;
+            else if (columnName.equals("Total Pages")) return 1;
+            else if (columnName.equals("Printer")) return 2;
+            else if (columnName.equals("PaperSize")) return 3;
+            else if (columnName.equals("Grayscale")) return 4;
+            else if (columnName.equals("Client")) return 5;
+        } else {
+            if (columnName.equals("Time")) return 0;
+            else if (columnName.equals("User")) return 1;
+            else if (columnName.equals("Pages")) return 2;
+            else if (columnName.equals("Copies")) return 3;
+            else if (columnName.equals("Printer")) return 4;
+            else if (columnName.equals("DocumentName")) return 5;
+            else if (columnName.equals("PaperSize")) return 6;
+            else if (columnName.equals("Grayscale")) return 7;
+            else if (columnName.equals("FileSize")) return 8;
+            else if (columnName.equals("Client")) return 9;
+        }
+        return 0;
     }
 
     private void clearTable() { // TODO remove unnecessary lines if they exist AND boolean arg to ask permission
@@ -177,11 +206,22 @@ public class MainViewController implements Initializable {
         tableView.refresh();
     }
 
+    public void clearFields() {
+        userNameField.clear();
+        datePickerFrom.getEditor().clear();
+        datePickerTo.getEditor().clear();
+        printerComboBox.getEditor().clear();
+    }
+
+    public void setUserTotalMode() {
+    }
+
     private void createColumns(ArrayList<String> columnNames) throws SQLException {
         for(int i = 0 ; i < columnNames.size(); i++){
             String colName = columnNames.get(i);
             if (colName.equals("Time")) {
                 TableColumn<LogEntry, String> column = new TableColumn<>("Time");
+                column.prefWidthProperty().bind(tableView.widthProperty().multiply(0.08));
                 column.setCellValueFactory(new PropertyValueFactory<>("date"));
                 Platform.runLater(() -> tableView.getColumns().add(column));
             } else if (colName.equals("User")) {
@@ -190,26 +230,35 @@ public class MainViewController implements Initializable {
                 Platform.runLater(() -> tableView.getColumns().add(column));
             } else if (colName.equals("Pages")) {
                 TableColumn<LogEntry, Integer> column = new TableColumn<>("Pages");
+                column.prefWidthProperty().bind(tableView.widthProperty().multiply(0.05));
+                column.maxWidthProperty().bind(tableView.widthProperty().multiply(0.10));
                 column.setCellValueFactory(new PropertyValueFactory<>("pages"));
                 Platform.runLater(() -> tableView.getColumns().add(column));
             } else if (colName.equals("Copies")) {
                 TableColumn<LogEntry, Integer> column = new TableColumn<>("Copies");
+                column.prefWidthProperty().bind(tableView.widthProperty().multiply(0.05));
+                column.maxWidthProperty().bind(tableView.widthProperty().multiply(0.10));
                 column.setCellValueFactory(new PropertyValueFactory<>("copies"));
                 Platform.runLater(() -> tableView.getColumns().addAll(column));
             } else if (colName.equals("Printer")) {
                 TableColumn<LogEntry, String> column = new TableColumn<>("Printer");
+                column.prefWidthProperty().bind(tableView.widthProperty().multiply(0.10));
                 column.setCellValueFactory(new PropertyValueFactory<>("printer"));
                 Platform.runLater(() -> tableView.getColumns().add(column));
             } else if (colName.equals("DocumentName") || colName.equals("Document Name") ) {
                 TableColumn<LogEntry, String> column = new TableColumn<>("Document Name");
+                column.prefWidthProperty().bind(tableView.widthProperty().multiply(0.25));
                 column.setCellValueFactory(new PropertyValueFactory<>("documentName"));
                 Platform.runLater(() -> tableView.getColumns().add(column));
             } else if (colName.equals("PaperSize") || colName.equals("Paper Size")) {
                 TableColumn<LogEntry, String> column = new TableColumn<>("Paper Size");
+                column.prefWidthProperty().bind(tableView.widthProperty().multiply(0.05));
+                column.maxWidthProperty().bind(tableView.widthProperty().multiply(0.10));
                 column.setCellValueFactory(new PropertyValueFactory<>("paperSize"));
                 Platform.runLater(() -> tableView.getColumns().add(column));
             } else if (colName.equals("Grayscale")) {
                 TableColumn<LogEntry, String> column = new TableColumn<>("Color");
+                column.prefWidthProperty().bind(tableView.widthProperty().multiply(0.08));
                 column.setCellValueFactory(new PropertyValueFactory<>("grayscale"));
                 Platform.runLater(() -> tableView.getColumns().add(column));
             } else if (colName.equals("FileSize") && colName.equals("FileSize")) {
@@ -217,24 +266,54 @@ public class MainViewController implements Initializable {
                 column.setCellValueFactory(new PropertyValueFactory<>("fileSize"));
                 Platform.runLater(() -> tableView.getColumns().add(column));
             } else if (colName.equals("Client")) {
-                TableColumn<LogEntry, String> column = new TableColumn<>("Client");
+                TableColumn<LogEntry, String> column = new TableColumn<>("PC");
+                column.prefWidthProperty().bind(tableView.widthProperty().multiply(0.10));
                 column.setCellValueFactory(new PropertyValueFactory<>("client"));
+                Platform.runLater(() -> tableView.getColumns().add(column));
+            } else if (colName.equals("Total Pages")) {
+                TableColumn<LogEntry, String> column = new TableColumn<>("Total Pages");
+                column.prefWidthProperty().bind(tableView.widthProperty().multiply(0.10));
+                column.setCellValueFactory(new PropertyValueFactory<>("totalPages"));
                 Platform.runLater(() -> tableView.getColumns().add(column));
             }
         }
         Platform.runLater(() -> tableView.refresh());
     }
 
-    private String setUpQuery() throws ParseException {
+    private String constructQuery() throws ParseException {
         StringBuffer sb = new StringBuffer();
+        LinkedHashMap<String, Boolean> columns = null;
         int countWhere = 0;
         int countColumns = 0;
-        for (Map.Entry<String, Boolean> entry: columns.entrySet()) {
-            if (entry.getValue()) {
-                if (countColumns == 0) sb.append("SELECT ");
-                else sb.append(", ");
-                sb.append(entry.getKey());
-                countColumns++;
+        //
+        if (totalCheckBox != null && totalCheckBox.isSelected()) {
+            columns = ColumnHandler.getUserTotalColumns();
+            String queryField;
+            for (Map.Entry<String, Boolean> entry: columns.entrySet()) {
+                if (entry.getValue()) {
+                    queryField = entry.getKey();
+                    if (queryField.equals("Printer") && printerComboBox.getEditor().getText().equals(""))   continue;
+                    else if (queryField.equals("PaperSize") && formatComboBox.getEditor().getText().equals("")) continue;
+                    else if (queryField.equals("Grayscale") && colorComboBox.getEditor().getText().equals("")) continue;
+                    else if (queryField.equals("Client") && colorComboBox.getEditor().getText().equals("")) continue;
+                    if (countColumns == 0) sb.append("SELECT ");
+                    else sb.append(", ");
+                    if (queryField.equals("Total Pages")) queryField = "SUM(Pages * Copies) as 'Total Pages'";
+                    sb.append(queryField);
+                    countColumns++;
+                }
+            }
+        } else {
+            columns = ColumnHandler.getLogEntryColumns();
+            String queryField;
+            for (Map.Entry<String, Boolean> entry: columns.entrySet()) {
+                if (entry.getValue()) {
+                    if (countColumns == 0) sb.append("SELECT ");
+                    else sb.append(", ");
+                    queryField = entry.getKey();
+                    sb.append(queryField);
+                    countColumns++;
+                }
             }
         }
         sb.append(" FROM logs");
@@ -254,6 +333,31 @@ public class MainViewController implements Initializable {
             sb.append(" Time <= '" + getTimeToText() + "'");
             countWhere++;
         }
+        if (printerComboBox != null && !printerComboBox.getEditor().getText().equals("")) {
+            if (countWhere == 0) sb.append(" WHERE");
+            else sb.append(" AND");
+            sb.append(" Printer LIKE '%" + printerComboBox.getEditor().getText() + "%'");
+            countWhere++;
+        }
+        if (formatComboBox != null && !formatComboBox.getEditor().getText().equals("")) {
+            if (countWhere == 0) sb.append(" WHERE");
+            else sb.append(" AND");
+            sb.append(" PaperSize = '" + formatComboBox.getEditor().getText() + "'");
+            countWhere++;
+        }
+        if (colorComboBox != null && !colorComboBox.getEditor().getText().equals("")) {
+            if (countWhere == 0) sb.append(" WHERE");
+            else sb.append(" AND");
+            sb.append(" Grayscale = '" + colorComboBox.getEditor().getText() + "'");
+            countWhere++;
+        }
+        if (pcComboBox != null && !pcComboBox.getEditor().getText().equals("")) {
+            if (countWhere == 0) sb.append(" WHERE");
+            else sb.append(" AND");
+            sb.append(" Client = '" + pcComboBox.getEditor().getText() + "'");
+            countWhere++;
+        }
+        if (totalCheckBox.isSelected()) sb.append(" GROUP BY User order by SUM(Pages * Copies) desc");
         String query = sb.toString();
         System.out.println(query);
         return query;
@@ -290,7 +394,7 @@ public class MainViewController implements Initializable {
                         }
                         if (run) printTimer.schedule(this, 5000);
                     }
-                }, 300);
+                }, 50);
         }).start();
     }
 
