@@ -1,13 +1,12 @@
 package db;
 
-import com.opencsv.CSVReader;
+import com.opencsv.*;
 import java.io.*;
 import java.sql.*;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 public class DBHandler {
-    private static DBHandler dbHandler = new DBHandler();
+    private static final DBHandler dbHandler = new DBHandler();
     private static Connection conn;
     private Statement stmt;
     /*SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");*/
@@ -33,14 +32,17 @@ public class DBHandler {
     public void readCSV(String filePath) throws IOException, ClassNotFoundException  {
         try {
             System.out.println("import...");
-            CSVReader csvReader = new CSVReader(new InputStreamReader(new FileInputStream(filePath), "cp1251"),',');
+            final RFC4180Parser csvParser = new RFC4180ParserBuilder().withSeparator(',').withQuoteChar('"').build();
+            final CSVReader csvReader = new CSVReaderBuilder (new InputStreamReader(new FileInputStream(filePath), "cp1251")).withSkipLines(2).withCSVParser(csvParser).build();
             String fileName = filePath.substring(filePath.lastIndexOf("\\") + 1, filePath.length());
             int lastLineIndex = getLastLineIndex(fileName);
             System.out.println(fileName);
-            conn.setAutoCommit(false);
-            PreparedStatement ps = conn.prepareStatement("INSERT INTO logs (Source, Line, Time, User, Pages, Copies, Printer, DocumentName, Client, PaperSize, Language, Duplex, Grayscale, FileSize) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            String[] data = null;
+
+            // read all lines from cvs to ArrayList
             ArrayList<String[]> csvList = (ArrayList<String[]>) csvReader.readAll();
+
+            // check lines that read whether they exist in file or already been imported
+            System.out.println(csvList.size());
             if (csvList.size() < 3) {
                 System.out.println("File is empty");
                 return;
@@ -51,14 +53,20 @@ public class DBHandler {
             }
             int startLine;
             if (lastLineIndex == 0) {
-                startLine = 2;
+                startLine = 0;
                 System.out.println("Lines to add: " + (csvList.size() - startLine));
             } else {
                 startLine = lastLineIndex;
                 System.out.println("File will be imported from " + startLine + " line. Lines to add: " + (csvList.size() - lastLineIndex));
             }
+            // end of check
+
+            conn.setAutoCommit(false);
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO logs (Source, Line, Time, User, Pages, Copies, Printer, DocumentName, Client, PaperSize, Language, Duplex, Grayscale, FileSize) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             int partNum = 0;
+            String[] data = null;
             for (int i = startLine; i < csvList.size(); i++) {
+                System.out.println("line " + i);
                 data = csvList.get(i);
                 String docName = data[5];
                 try {

@@ -11,9 +11,8 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
 import db.DBHandler;
 import db.LogEntry;
-import util.ColumnHandler;
+import util.ViewDataStorage;
 import util.ExportHandler;
-
 import java.io.*;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -124,7 +123,7 @@ public class MainViewController implements Initializable {
                 // create template array for LogEntry constructor and start to fill ObservableList. Non-used parameters are nulls.
                 Object[] values = null;
                 if (totalCheckBox != null && totalCheckBox.isSelected()) {
-                    values = new Object[ColumnHandler.getUserTotalColumns().size()];
+                    values = new Object[ViewDataStorage.getUserTotalColumns().size()];
                     while(rs.next()){
                         for (int i = 0; i < usefulColumns.length; i++) {
                             values[usefulColumns[i]] = rs.getObject(i + 1);
@@ -132,7 +131,7 @@ public class MainViewController implements Initializable {
                         data.add(new UserTotalEntry((String) values[0], ((BigDecimal) values[1]).intValueExact(), (String) values[2], (String) values[3], (String) values[4], (String) values[5]));
                     }
                 } else {
-                    values = new Object[ColumnHandler.getLogEntryColumns().size()];
+                    values = new Object[ViewDataStorage.getLogEntryColumns().size()];
                     while(rs.next()){
                         for (int i = 0; i < usefulColumns.length; i++) {
                             values[usefulColumns[i]] = rs.getObject(i + 1);
@@ -273,7 +272,7 @@ public class MainViewController implements Initializable {
         int countColumns = 0;
         //
         if (totalCheckBox != null && totalCheckBox.isSelected()) {
-            columns = ColumnHandler.getUserTotalColumns();
+            columns = ViewDataStorage.getUserTotalColumns();
             String queryField;
             for (Map.Entry<String, Boolean> entry: columns.entrySet()) {
                 if (entry.getValue()) {
@@ -290,7 +289,7 @@ public class MainViewController implements Initializable {
                 }
             }
         } else {
-            columns = ColumnHandler.getLogEntryColumns();
+            columns = ViewDataStorage.getLogEntryColumns();
             String queryField;
             for (Map.Entry<String, Boolean> entry: columns.entrySet()) {
                 if (entry.getValue()) {
@@ -304,43 +303,43 @@ public class MainViewController implements Initializable {
         }
         sb.append(" FROM logs");
         if (userNameField.getText() != null && !userNameField.getText().equals("")) {
-            sb.append(" WHERE User LIKE '" + userNameField.getText() + "'");
+            sb.append(" WHERE User LIKE '").append(userNameField.getText()).append("'");
             countWhere++;
         }
         if (datePickerFrom.getValue() != null) {
             if (countWhere == 0)    sb.append(" WHERE");
             else sb.append(" AND");
-            sb.append(" Time >= '" + getTimeFromText() + "'");
+            sb.append(" Time >= '").append(getTimeFromText()).append("'");
             countWhere++;
         }
         if (datePickerTo.getValue() != null) {
             if (countWhere == 0) sb.append(" WHERE");
             else sb.append(" AND");
-            sb.append(" Time <= '" + getTimeToText() + "'");
+            sb.append(" Time <= '").append(getTimeToText()).append("'");
             countWhere++;
         }
         if (printerComboBox != null && !printerComboBox.getEditor().getText().equals("")) {
             if (countWhere == 0) sb.append(" WHERE");
             else sb.append(" AND");
-            sb.append(" Printer LIKE '%" + printerComboBox.getEditor().getText() + "%'");
+            sb.append(" Printer LIKE '%").append(printerComboBox.getEditor().getText()).append("%'");
             countWhere++;
         }
         if (formatComboBox != null && !formatComboBox.getEditor().getText().equals("")) {
             if (countWhere == 0) sb.append(" WHERE");
             else sb.append(" AND");
-            sb.append(" PaperSize = '" + formatComboBox.getEditor().getText() + "'");
+            sb.append(" PaperSize = '").append(formatComboBox.getEditor().getText()).append("'");
             countWhere++;
         }
         if (colorComboBox != null && !colorComboBox.getEditor().getText().equals("")) {
             if (countWhere == 0) sb.append(" WHERE");
             else sb.append(" AND");
-            sb.append(" Grayscale = '" + colorComboBox.getEditor().getText() + "'");
+            sb.append(" Grayscale = '").append(colorComboBox.getEditor().getText()).append("'");
             countWhere++;
         }
         if (pcComboBox != null && !pcComboBox.getEditor().getText().equals("")) {
             if (countWhere == 0) sb.append(" WHERE");
             else sb.append(" AND");
-            sb.append(" Client LIKE '" + pcComboBox.getEditor().getText() + "'");
+            sb.append(" Client LIKE '").append(pcComboBox.getEditor().getText()).append("'");
             countWhere++;
         }
         if (totalCheckBox.isSelected()) sb.append(" GROUP BY User order by SUM(Pages * Copies) desc");
@@ -372,6 +371,7 @@ public class MainViewController implements Initializable {
                         try {
                             ResultSet rs = DBHandler.getInstance().searchInDB("SELECT distinct Printer FROM logs order by Printer");
                             ObservableList<String> comboBoxData = FXCollections.observableArrayList();
+                            comboBoxData.add("");
                             while (rs.next()) comboBoxData.add(rs.getString(1));
                             Platform.runLater(() -> printerComboBox.setItems(comboBoxData));
                             run = false;
@@ -381,6 +381,27 @@ public class MainViewController implements Initializable {
                         if (run) printTimer.schedule(this, 5000);
                     }
                 }, 50);
+            Platform.runLater(() -> colorComboBox.setItems(ViewDataStorage.getColorComboBoxData()));
+        }).start();
+        new Thread(() -> {
+            Timer printTimer = new Timer();
+            printTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    boolean run = true;
+                    try {
+                        ResultSet rs = DBHandler.getInstance().searchInDB("SELECT distinct PaperSize FROM logs order by PaperSize");
+                        ObservableList<String> comboBoxData = FXCollections.observableArrayList();
+                        comboBoxData.add("");
+                        while (rs.next()) comboBoxData.add(rs.getString(1));
+                        Platform.runLater(() -> formatComboBox.setItems(comboBoxData));
+                        run = false;
+                    } catch (SQLException e) {
+                        // ignore
+                    }
+                    if (run) printTimer.schedule(this, 5000);
+                }
+            }, 300);
         }).start();
     }
 
