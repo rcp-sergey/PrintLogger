@@ -64,18 +64,74 @@
                         <Insets bottom="10.0" top="10.0" />
                      </VBox.margin>
                      <children>
-                        <Label text="From" />
-                        <DatePicker fx:id="datePickerFrom" />
-                        <Label text="To" />
-                        <DatePicker fx:id="datePickerTo" />
-                        <Label text="Printer" />
-                        <ComboBox fx:id="printerComboBox" editable="true" prefWidth="150.0" />
-                        <Label layoutX="568.0" layoutY="14.0" text="Format" />
-                        <ComboBox fx:id="formatComboBox" editable="true" layoutX="666.0" layoutY="10.0" prefHeight="25.0" prefWidth="77.0" />
-                        <Label layoutX="757.0" layoutY="14.0" text="Color" />
-                        <ComboBox fx:id="colorComboBox" editable="true" layoutX="788.0" layoutY="10.0" prefHeight="25.0" prefWidth="77.0" />
-                        <Label layoutX="831.0" layoutY="14.0" text="PC" />
-                        <ComboBox fx:id="pcComboBox" editable="true" layoutX="860.0" layoutY="10.0" prefHeight="25.0" prefWidth="149.0" />
+                        <HBox>
+                           <children>
+                              <VBox alignment="CENTER" spacing="10.0">
+                                 <children>
+                                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                       <children>
+                                          <Label text="Date from" />
+                                          <DatePicker fx:id="datePickerTo" />
+                                       </children>
+                                    </HBox>
+                                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                       <children>
+                                          <Label text="Date to" />
+                                          <DatePicker fx:id="datePickerFrom" />
+                                       </children>
+                                    </HBox>
+                                 </children>
+                              </VBox>
+                           </children>
+                        </HBox>
+                        <VBox alignment="CENTER_RIGHT" spacing="10.0">
+                           <children>
+                              <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                 <children>
+                                    <Label text="Printer" />
+                                    <ComboBox fx:id="printerComboBox" editable="true" prefWidth="150.0" />
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                 <children>
+                                    <Label text="PC" />
+                                    <ComboBox fx:id="pcComboBox" editable="true" prefHeight="25.0" prefWidth="149.0" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </VBox>
+                        <VBox spacing="10.0">
+                           <children>
+                              <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                 <children>
+                                    <Label text="Format" />
+                                    <ComboBox fx:id="formatComboBox" editable="true" prefHeight="25.0" prefWidth="150.0" />
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                 <children>
+                                    <Label text="Color" />
+                                    <ComboBox fx:id="colorComboBox" editable="true" prefHeight="25.0" prefWidth="150.0" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </VBox>
+                        <VBox layoutX="716.0" layoutY="10.0" spacing="10.0">
+                           <children>
+                              <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                 <children>
+                                    <Label text="Pages from" />
+                                    <TextField prefWidth="75.0" />
+                                 </children>
+                              </HBox>
+                              <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                                 <children>
+                                    <Label text="Pages to" />
+                                    <TextField prefWidth="75.0" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </VBox>
                      </children>
                   </HBox>
                   <HBox alignment="CENTER" nodeOrientation="LEFT_TO_RIGHT" spacing="10.0">
@@ -84,7 +140,6 @@
                         <Label text="User" />
                         <TextField fx:id="userNameField" onAction="#search" />
                         <Button fx:id="searchButton" mnemonicParsing="false" onAction="#search" text="Search" />
-                        <Button mnemonicParsing="false" onAction="#exportTable" text="Copy" />
                      </children>
                   </HBox>
                </children>
