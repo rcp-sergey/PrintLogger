@@ -191,6 +191,9 @@ public class MainViewController implements Initializable {
                 e.printStackTrace();
             } catch (SQLException e) {
                 Platform.runLater(()-> warningLabel.setText("SQL state: " + e.getSQLState()));
+                System.out.println(e);
+            } finally {
+                Platform.runLater(() -> lockUI(false));
             }
         });
         thread.start();
@@ -408,6 +411,7 @@ public class MainViewController implements Initializable {
         if (totalCheckBox.isSelected()) {
             if (pagesToTextField.getText().equals("")) {
                 if (countWhere == 0) sb.append(" WHERE");
+                else sb.append(" AND");
                 sb.append(" Pages <= '" + 5000 + "'");
             }
             sb.append(" GROUP BY User order by SUM(Pages * Copies) desc");
