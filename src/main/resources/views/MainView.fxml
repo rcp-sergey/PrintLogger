@@ -15,6 +15,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
 
 <BorderPane prefHeight="700.0" prefWidth="1200.0" stylesheets="@../css/Style.css" xmlns="http://javafx.com/javafx/8.0.141" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.MainViewController">
    <top>
@@ -71,13 +72,13 @@
                                     <HBox alignment="CENTER_RIGHT" spacing="10.0">
                                        <children>
                                           <Label text="Date from" />
-                                          <DatePicker fx:id="datePickerTo" />
+                                          <DatePicker fx:id="datePickerFrom" />
                                        </children>
                                     </HBox>
                                     <HBox alignment="CENTER_RIGHT" spacing="10.0">
                                        <children>
                                           <Label text="Date to" />
-                                          <DatePicker fx:id="datePickerFrom" />
+                                          <DatePicker fx:id="datePickerTo" onAction="#search" />
                                        </children>
                                     </HBox>
                                  </children>
@@ -95,7 +96,7 @@
                               <HBox alignment="CENTER_RIGHT" spacing="10.0">
                                  <children>
                                     <Label text="PC" />
-                                    <ComboBox fx:id="pcComboBox" editable="true" prefHeight="25.0" prefWidth="149.0" />
+                                    <ComboBox fx:id="pcComboBox" editable="true" prefHeight="25.0" prefWidth="150.0" />
                                  </children>
                               </HBox>
                            </children>
@@ -121,13 +122,13 @@
                               <HBox alignment="CENTER_RIGHT" spacing="10.0">
                                  <children>
                                     <Label text="Pages from" />
-                                    <TextField prefWidth="75.0" />
+                                    <TextField fx:id="pagesFromTextField" alignment="CENTER_RIGHT" onAction="#search" prefWidth="75.0" />
                                  </children>
                               </HBox>
                               <HBox alignment="CENTER_RIGHT" spacing="10.0">
                                  <children>
                                     <Label text="Pages to" />
-                                    <TextField prefWidth="75.0" />
+                                    <TextField fx:id="pagesToTextField" alignment="CENTER_RIGHT" onAction="#search" prefWidth="75.0" />
                                  </children>
                               </HBox>
                            </children>
@@ -138,7 +139,9 @@
                      <children>
                         <CheckBox fx:id="totalCheckBox" mnemonicParsing="false" onAction="#setUserTotalMode" text="Total" />
                         <Label text="User" />
-                        <TextField fx:id="userNameField" onAction="#search" />
+                        <TextField fx:id="userNameField" onAction="#search" prefWidth="150.0" />
+                        <Label text="Document" />
+                        <TextField fx:id="documentTextField" onAction="#search" prefHeight="25.0" prefWidth="300.0" />
                         <Button fx:id="searchButton" mnemonicParsing="false" onAction="#search" text="Search" />
                      </children>
                   </HBox>
@@ -151,10 +154,18 @@
       </VBox>
    </top>
    <bottom>
-      <HBox alignment="CENTER" BorderPane.alignment="CENTER">
+      <HBox alignment="CENTER_LEFT" BorderPane.alignment="CENTER">
          <children>
-            <Label fx:id="warningLabel" contentDisplay="CENTER" textAlignment="CENTER" HBox.hgrow="SOMETIMES" />
+            <Circle fx:id="statusCircle" fill="#ff4f1f" radius="7.0" stroke="#2c2a2a" strokeLineCap="ROUND" strokeType="INSIDE" />
+            <HBox alignment="CENTER" HBox.hgrow="ALWAYS">
+               <children>
+                  <Label fx:id="warningLabel" contentDisplay="CENTER" textAlignment="CENTER" HBox.hgrow="SOMETIMES" />
+               </children>
+            </HBox>
          </children>
+         <BorderPane.margin>
+            <Insets left="10.0" />
+         </BorderPane.margin>
       </HBox>
    </bottom>
    <center>
@@ -165,9 +176,8 @@
          <contextMenu>
             <ContextMenu>
               <items>
-                <MenuItem mnemonicParsing="false" text="Copy cell" />
-                  <MenuItem mnemonicParsing="false" text="Copy line" />
-                  <MenuItem mnemonicParsing="false" text="Search" />
+                <MenuItem mnemonicParsing="false" onAction="#copySelectedToClipboard" text="Copy" />
+                  <MenuItem mnemonicParsing="false" text="_search TODO" />
               </items>
             </ContextMenu>
          </contextMenu></TableView>

@@ -4,20 +4,20 @@ import com.opencsv.*;
 import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Properties;
 
-public class DBHandler {
-    private static final DBHandler dbHandler = new DBHandler();
-    private static Connection conn;
+public class DatabaseHandler {
+    public static final String PATH_TO_PROPERTIES = "config.properties";
+    private static String connectionURL;
+    private static final DatabaseHandler DATABASE_HANDLER = new DatabaseHandler();
+    private static Connection connection;
     private Statement stmt;
     /*SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");*/
 
-    private DBHandler() {
+    private DatabaseHandler() {
         try {
             Class.forName("com.mysql.jdbc.Driver");
-            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/printlogdb?user=logclient&password=Qwer1234");
-            stmt = conn.createStatement();
-            stmt.execute("SET NAMES 'utf8mb4'");
-            createTable();
+            getConnection();
         } catch (SQLException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
@@ -25,8 +25,34 @@ public class DBHandler {
         }
     }
 
-    public static DBHandler getInstance() {
-        return dbHandler;
+    private void getConnection() throws SQLException {
+        importProperties();
+        connection = DriverManager.getConnection(connectionURL);
+        stmt = connection.createStatement();
+        stmt.execute("SET NAMES 'utf8mb4'");
+        createTable();
+    }
+
+    public boolean isConnected() {
+        try {
+            /*if (connection != null && !connection.isClosed()) {*/
+            searchInDB("SELECT 1");
+            /*System.out.println("connected")*/;
+            return true;
+        } catch (SQLException e) {
+            try {
+                /*System.out.println("reconnection");*/
+                getConnection();
+            } catch (SQLException e1) {
+                e1.printStackTrace();
+            }
+        }
+        /*System.out.println("not connected");*/
+        return false;
+    }
+
+    public static DatabaseHandler getInstance() {
+        return DATABASE_HANDLER;
     }
 
     public void readCSV(String filePath) throws IOException, ClassNotFoundException  {
@@ -61,12 +87,11 @@ public class DBHandler {
             }
             // end of check
 
-            conn.setAutoCommit(false);
-            PreparedStatement ps = conn.prepareStatement("INSERT INTO logs (Source, Line, Time, User, Pages, Copies, Printer, DocumentName, Client, PaperSize, Language, Duplex, Grayscale, FileSize) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            connection.setAutoCommit(false);
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO logs (Source, Line, Time, User, Pages, Copies, Printer, DocumentName, Client, PaperSize, Language, Duplex, Grayscale, FileSize) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             int partNum = 0;
             String[] data = null;
             for (int i = startLine; i < csvList.size(); i++) {
-                System.out.println("line " + i);
                 data = csvList.get(i);
                 String docName = data[5];
                 try {
@@ -97,7 +122,7 @@ public class DBHandler {
                 }
             }
             ps.executeBatch();
-            conn.setAutoCommit(true);
+            connection.setAutoCommit(true);
             System.out.println("Import completed");
         } catch (SQLException e) {
             e.printStackTrace();
@@ -105,12 +130,16 @@ public class DBHandler {
     }
 
     public ResultSet searchInDB(String query) throws SQLException {
-        return conn.createStatement().executeQuery(query);
+        try {
+            return connection.createStatement().executeQuery(query);
+        } catch (NullPointerException e) {
+            throw new SQLException();
+        }
     }
 
 
     public int getLastLineIndex(String file) throws SQLException {
-        PreparedStatement ps = conn.prepareStatement("SELECT Line FROM logs WHERE Source = ? AND Line = (SELECT MAX(Line) FROM logs)");
+        PreparedStatement ps = connection.prepareStatement("SELECT Line FROM logs WHERE Source = ? AND Line = (SELECT MAX(Line) FROM logs)");
         ps.setString(1, file);
         ResultSet rs = ps.executeQuery();
         int line = 0;
@@ -120,9 +149,36 @@ public class DBHandler {
 
     public void createTable() throws SQLException {
         stmt.executeUpdate("CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTO_INCREMENT, Source TEXT NOT NULL, Line INTEGER NOT NULL, Time DATETIME, User TEXT, Pages INTEGER , Copies INTEGER, Printer TEXT, DocumentName LONGTEXT , Client TEXT, PaperSize TEXT, Language TEXT, Duplex TEXT, Grayscale TEXT, FileSize TEXT) CHARACTER SET utf8mb4");
-/*
-        stmt.executeUpdate("CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTO_INCREMENT, Source TEXT NOT NULL, Line INTEGER NOT NULL, Time DATETIME, User TEXT, Pages INTEGER , Copies INTEGER, Printer TEXT, DocumentName LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_g utf8mb4 COLLATE utf8mb4_general_ci , Client TEXT, PaperSize TEXT, Language TEXT, Duplex TEXT, Grayscale TEXT, FileSize TEXT) CHARACTER SET utf8 COLLATE utf8_general_ci");
-*/
+    }
+
+    public void importProperties() {
+        try {
+            File propertiesFile = new File(PATH_TO_PROPERTIES);
+            if (!propertiesFile.exists()) {
+                propertiesFile.createNewFile();
+                PrintWriter writer = new PrintWriter(new FileWriter(propertiesFile));
+                writer.println("server = localhost");
+                writer.println("port = 3306");
+                writer.println("base = printlogdb");
+                writer.println("login = logclient");
+                writer.println("password = Qwer1234");
+                writer.flush();
+            }
+            FileInputStream fis = new FileInputStream(propertiesFile);
+            Properties properties = new Properties();
+            properties.load(fis);
+            String server = properties.getProperty("server");
+            String port = properties.getProperty("port");
+            String base = properties.getProperty("base");
+            String login = properties.getProperty("login");
+            String password = properties.getProperty("password");
+            StringBuilder urlBuilder = new StringBuilder();
+            connectionURL = urlBuilder.append("jdbc:mysql://").append(server).append(":").append(port).append("/").append(base).append("?").append("user").append("=").append(login).append("&").append("password").append("=").append(password).toString();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
 

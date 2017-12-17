@@ -2,16 +2,20 @@ package controllers;
 
 import db.UserTotalEntry;
 import javafx.application.Platform;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.shape.Circle;
 import javafx.stage.FileChooser;
-import db.DBHandler;
+import db.DatabaseHandler;
 import db.LogEntry;
-import util.ViewDataStorage;
+import util.ViewDataHandler;
 import util.ExportHandler;
 import java.io.*;
 import java.math.BigDecimal;
@@ -51,14 +55,22 @@ public class MainViewController implements Initializable {
     private CheckBox totalCheckBox;
     @FXML
     private ComboBox pcComboBox;
-    private final DBHandler dbHandler = DBHandler.getInstance();
+    @FXML
+    private TextField pagesFromTextField;
+    @FXML
+    private TextField pagesToTextField;
+    @FXML
+    private TextField documentTextField;
+    @FXML
+    private Circle statusCircle;
+    private final DatabaseHandler databaseHandler = DatabaseHandler.getInstance();
     private ObservableList data;
 
     public void startImport() {
         warningLabel.setText("");
         try {
             String filePath = filePathField.getText();
-            dbHandler.readCSV(filePath);
+            databaseHandler.readCSV(filePath);
         } catch (NullPointerException e) {
             warningLabel.setText("Please, choose file!");
         } catch (FileNotFoundException e) {
@@ -68,6 +80,32 @@ public class MainViewController implements Initializable {
         } catch (ClassNotFoundException e) {
             warningLabel.setText("File is not correct!");
         }
+    }
+
+    public void copySelectedToClipboard() {
+        ObservableList<TablePosition> posList = tableView.getSelectionModel().getSelectedCells();
+        StringBuilder clipboardString = new StringBuilder();
+        int oldRow = -1;
+        for (TablePosition p : posList) {
+            int r = p.getRow();
+            int c = p.getColumn();
+            TableColumn tableColumn = (TableColumn) tableView.getColumns().get(c);
+            ObservableValue observableValue = tableColumn.getCellObservableValue(r);
+            String cellText = observableValue.getValue().toString();
+            if (oldRow == r)
+                clipboardString.append('\t');
+            else if (oldRow != -1)
+                clipboardString.append('\n');
+            /*if (!cellText.equals("")) {
+                clipboardString.append(cellText);
+                clipboardString.append(" | ");
+            }*/
+            clipboardString.append(cellText);
+            oldRow = r;
+        }
+        final ClipboardContent content = new ClipboardContent();
+        content.putString(clipboardString.toString());
+        Clipboard.getSystemClipboard().setContent(content);
     }
 
     public void chooseFile() {
@@ -106,7 +144,7 @@ public class MainViewController implements Initializable {
                 String query = constructQuery();
 
                 // execute query and get ResultSet and it's MetaData
-                ResultSet rs = dbHandler.searchInDB(query);
+                ResultSet rs = databaseHandler.searchInDB(query);
                 ResultSetMetaData metaData = rs.getMetaData();
 
                 // create list with column names from ResultSet and array with order numbers of parameters for LogEntry constructor
@@ -123,7 +161,7 @@ public class MainViewController implements Initializable {
                 // create template array for LogEntry constructor and start to fill ObservableList. Non-used parameters are nulls.
                 Object[] values = null;
                 if (totalCheckBox != null && totalCheckBox.isSelected()) {
-                    values = new Object[ViewDataStorage.getUserTotalColumns().size()];
+                    values = new Object[ViewDataHandler.getUserTotalColumns().size()];
                     while(rs.next()){
                         for (int i = 0; i < usefulColumns.length; i++) {
                             values[usefulColumns[i]] = rs.getObject(i + 1);
@@ -131,7 +169,7 @@ public class MainViewController implements Initializable {
                         data.add(new UserTotalEntry((String) values[0], ((BigDecimal) values[1]).intValueExact(), (String) values[2], (String) values[3], (String) values[4], (String) values[5]));
                     }
                 } else {
-                    values = new Object[ViewDataStorage.getLogEntryColumns().size()];
+                    values = new Object[ViewDataHandler.getLogEntryColumns().size()];
                     while(rs.next()){
                         for (int i = 0; i < usefulColumns.length; i++) {
                             values[usefulColumns[i]] = rs.getObject(i + 1);
@@ -152,7 +190,7 @@ public class MainViewController implements Initializable {
             } catch (ParseException e) {
                 e.printStackTrace();
             } catch (SQLException e) {
-                e.printStackTrace();
+                Platform.runLater(()-> warningLabel.setText("SQL state: " + e.getSQLState()));
             }
         });
         thread.start();
@@ -196,6 +234,13 @@ public class MainViewController implements Initializable {
         datePickerFrom.getEditor().clear();
         datePickerTo.getEditor().clear();
         printerComboBox.getEditor().clear();
+        colorComboBox.getEditor().clear();
+        formatComboBox.getEditor().clear();
+        pagesFromTextField.clear();
+        pagesToTextField.clear();
+        pcComboBox.getEditor().clear();
+        documentTextField.clear();
+        totalCheckBox.setSelected(false);
     }
 
     public void setUserTotalMode() {
@@ -272,7 +317,7 @@ public class MainViewController implements Initializable {
         int countColumns = 0;
         //
         if (totalCheckBox != null && totalCheckBox.isSelected()) {
-            columns = ViewDataStorage.getUserTotalColumns();
+            columns = ViewDataHandler.getUserTotalColumns();
             String queryField;
             for (Map.Entry<String, Boolean> entry: columns.entrySet()) {
                 if (entry.getValue()) {
@@ -289,7 +334,7 @@ public class MainViewController implements Initializable {
                 }
             }
         } else {
-            columns = ViewDataStorage.getLogEntryColumns();
+            columns = ViewDataHandler.getLogEntryColumns();
             String queryField;
             for (Map.Entry<String, Boolean> entry: columns.entrySet()) {
                 if (entry.getValue()) {
@@ -318,6 +363,18 @@ public class MainViewController implements Initializable {
             sb.append(" Time <= '").append(getTimeToText()).append("'");
             countWhere++;
         }
+        if (!pagesFromTextField.getText().equals("")) {
+            if (countWhere == 0)    sb.append(" WHERE");
+            else sb.append(" AND");
+            sb.append(" Pages >= '").append(pagesFromTextField.getText()).append("'");
+            countWhere++;
+        }
+        if (!pagesToTextField.getText().equals("")) {
+            if (countWhere == 0) sb.append(" WHERE");
+            else sb.append(" AND");
+            sb.append(" Pages <= '").append(pagesToTextField.getText()).append("'");
+            countWhere++;
+        }
         if (printerComboBox != null && !printerComboBox.getEditor().getText().equals("")) {
             if (countWhere == 0) sb.append(" WHERE");
             else sb.append(" AND");
@@ -342,7 +399,19 @@ public class MainViewController implements Initializable {
             sb.append(" Client LIKE '").append(pcComboBox.getEditor().getText()).append("'");
             countWhere++;
         }
-        if (totalCheckBox.isSelected()) sb.append(" GROUP BY User order by SUM(Pages * Copies) desc");
+        if (documentTextField != null && !documentTextField.getText().equals("")) {
+            if (countWhere == 0) sb.append(" WHERE");
+            else sb.append(" AND");
+            sb.append(" DocumentName LIKE '").append(documentTextField.getText()).append("'");
+            countWhere++;
+        }
+        if (totalCheckBox.isSelected()) {
+            if (pagesToTextField.getText().equals("")) {
+                if (countWhere == 0) sb.append(" WHERE");
+                sb.append(" Pages <= '" + 5000 + "'");
+            }
+            sb.append(" GROUP BY User order by SUM(Pages * Copies) desc");
+        }
         String query = sb.toString();
         System.out.println(query);
         return query;
@@ -362,47 +431,10 @@ public class MainViewController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         tableView.getSelectionModel().setCellSelectionEnabled(true);
         tableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        new Thread(() -> {
-            Timer printTimer = new Timer();
-            printTimer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        boolean run = true;
-                        try {
-                            ResultSet rs = DBHandler.getInstance().searchInDB("SELECT distinct Printer FROM logs order by Printer");
-                            ObservableList<String> comboBoxData = FXCollections.observableArrayList();
-                            comboBoxData.add("");
-                            while (rs.next()) comboBoxData.add(rs.getString(1));
-                            Platform.runLater(() -> printerComboBox.setItems(comboBoxData));
-                            run = false;
-                        } catch (SQLException e) {
-                            // ignore
-                        }
-                        if (run) printTimer.schedule(this, 5000);
-                    }
-                }, 50);
-            Platform.runLater(() -> colorComboBox.setItems(ViewDataStorage.getColorComboBoxData()));
-        }).start();
-        new Thread(() -> {
-            Timer printTimer = new Timer();
-            printTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    boolean run = true;
-                    try {
-                        ResultSet rs = DBHandler.getInstance().searchInDB("SELECT distinct PaperSize FROM logs order by PaperSize");
-                        ObservableList<String> comboBoxData = FXCollections.observableArrayList();
-                        comboBoxData.add("");
-                        while (rs.next()) comboBoxData.add(rs.getString(1));
-                        Platform.runLater(() -> formatComboBox.setItems(comboBoxData));
-                        run = false;
-                    } catch (SQLException e) {
-                        // ignore
-                    }
-                    if (run) printTimer.schedule(this, 5000);
-                }
-            }, 300);
-        }).start();
+        ViewDataHandler.handleStatusCircle(statusCircle);
+        colorComboBox.setItems(ViewDataHandler.getColorComboBoxData());
+        ViewDataHandler.fillComboBox(printerComboBox, "Printer");
+        ViewDataHandler.fillComboBox(formatComboBox, "PaperSize");
     }
 
     public void exportToExcel() {

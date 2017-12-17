@@ -13,9 +13,9 @@ public class PrintLoggerApp extends Application {
         Parent root = FXMLLoader.load(getClass().getResource("views/MainView.fxml"));
         mainStage = primaryStage;
         mainStage.getIcons().add(new Image("img/logo.png"));
-        primaryStage.setTitle("Print Logger");
-        primaryStage.setScene(new Scene(root, 1200, 600));
-        primaryStage.show();
+        mainStage.setTitle("Print Logger");
+        mainStage.setScene(new Scene(root, 1200, 600));
+        mainStage.show();
     }
 
 
